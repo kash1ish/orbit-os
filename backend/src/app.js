@@ -7,7 +7,7 @@ import projectRoutes from "./routes/project.routes.js";
 import noteRoutes from "./routes/note.routes.js";
 import journalRoutes from "./routes/journal.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
-
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 const app = express();
 
@@ -23,6 +23,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.get("/", (req, res) => {
   res.json({
