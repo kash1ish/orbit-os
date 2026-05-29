@@ -20,14 +20,35 @@ export const createNote = asyncHandler(async (req, res) => {
 });
 
 export const getNotes = asyncHandler(async (req, res) => {
-  const notes = await Note.find({
+  // 1. Initialize the base query object with the logged-in user's ID
+  const query = {
     user: req.user._id,
-  }).sort({
+  };
+
+  // 2. Add search filter if present
+  if (req.query.search) {
+    // Escapes special regex characters to prevent breaking queries
+    const safeSearch = req.query.search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    
+    query.$or = [
+      { title: { $regex: safeSearch, $options: "i" } },
+      { content: { $regex: safeSearch, $options: "i" } },
+    ];
+  }
+
+  // 3. Add tag filter if present
+  if (req.query.tag) {
+    query.tags = req.query.tag;
+  }
+
+  // 4. Execute the database query with the built filters
+  const notes = await Note.find(query).sort({
     createdAt: -1,
   });
 
   res.json(notes);
 });
+
 
 export const getNoteById = asyncHandler(async (req, res) => {
   const note = await Note.findById(req.params.id);
@@ -37,16 +58,14 @@ export const getNoteById = asyncHandler(async (req, res) => {
     throw new Error("Note not found");
   }
 
-  if (
-    note.user.toString() !==
-    req.user._id.toString()
-  ) {
+  if (note.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Access denied");
   }
 
   res.json(note);
 });
+
 
 export const updateNote = asyncHandler(async (req, res) => {
   const note = await Note.findById(req.params.id);
@@ -56,10 +75,7 @@ export const updateNote = asyncHandler(async (req, res) => {
     throw new Error("Note not found");
   }
 
-  if (
-    note.user.toString() !==
-    req.user._id.toString()
-  ) {
+  if (note.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Access denied");
   }
@@ -81,10 +97,7 @@ export const deleteNote = asyncHandler(async (req, res) => {
     throw new Error("Note not found");
   }
 
-  if (
-    note.user.toString() !==
-    req.user._id.toString()
-  ) {
+  if (note.user.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Access denied");
   }

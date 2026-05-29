@@ -30,30 +30,37 @@ export const createProject = asyncHandler(async (req, res) => {
 });
 
 export const getProjects = asyncHandler(async (req, res) => {
-  const projects = await Project.find({
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const query = {
     user: req.user._id,
-  }).sort({ createdAt: -1 });
+  };
 
-  res.json(projects);
-});
-
-export const getProjectById = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id);
-
-  if (!project) {
-    res.status(404);
-    throw new Error("Project not found");
+  if (req.query.status) {
+    query.status = req.query.status;
   }
 
-  if (
-    project.user.toString() !==
-    req.user._id.toString()
-  ) {
-    res.status(403);
-    throw new Error("Access denied");
+  if (req.query.search) {
+    query.title = {
+      $regex: req.query.search,
+      $options: "i",
+    };
   }
 
-  res.json(project);
+  const total = await Project.countDocuments(query);
+
+  const projects = await Project.find(query)
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  res.json({
+    projects,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    totalItems: total,
+  });
 });
 
 export const updateProject = asyncHandler(async (req, res) => {

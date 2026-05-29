@@ -20,13 +20,43 @@ export const createGoal = asyncHandler(async (req, res) => {
 });
 
 export const getGoals = asyncHandler(async (req, res) => {
-  const goals = await Goal.find({
-    user: req.user._id,
-  }).sort({
-    createdAt: -1,
-  });
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
 
-  res.json(goals);
+  const query = {
+    user: req.user._id,
+  };
+
+  if (req.query.completed !== undefined) {
+    query.completed = req.query.completed === "true";
+  }
+
+  if (req.query.search) {
+    query.title = {
+      $regex: req.query.search,
+      $options: "i",
+    };
+  }
+
+  let sortOption = { createdAt: -1 };
+
+  if (req.query.sort === "deadline") {
+    sortOption = { deadline: 1 };
+  }
+
+  const total = await Goal.countDocuments(query);
+
+  const goals = await Goal.find(query)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  res.json({
+    goals,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    totalItems: total,
+  });
 });
 
 export const getGoalById = asyncHandler(
